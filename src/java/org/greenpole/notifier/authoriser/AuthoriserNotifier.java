@@ -13,6 +13,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import org.greenpole.entity.notification.NotificationWrapper;
 import org.greenpole.entity.notification.SenderReceiverType;
+import org.greenpole.hibernate.entity.Notification;
 import org.greenpole.hibernate.query.ClientCompanyComponentQuery;
 import org.greenpole.hibernate.query.GeneralComponentQuery;
 import org.greenpole.hibernate.query.factory.ComponentQueryFactory;
@@ -74,7 +75,10 @@ public class AuthoriserNotifier implements Runnable {
             logger.info("notification file created - [{}.xml]", wrapper.getCode());
             
             //register notification in database
-            cq.createNotification(wrapper);
+            Notification notification = new Notification(wrapper.getCode(), 
+                wrapper.getDescription(),wrapper.getFrom(), wrapper.getTo(),
+                wrapper.getFromType(), wrapper.getToType(), wrapper.isAttendedTo());
+            cq.createNotification(notification);
             
             //send email notification
             String subject = "Authorisation requested";
