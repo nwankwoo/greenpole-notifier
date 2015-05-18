@@ -19,6 +19,7 @@ import org.greenpole.hibernate.query.GeneralComponentQuery;
 import org.greenpole.hibernate.query.factory.ComponentQueryFactory;
 import org.greenpole.util.email.EmailClient;
 import org.greenpole.util.properties.EmailProperties;
+import org.greenpole.util.properties.NotificationProperties;
 import org.greenpole.util.properties.ThreadPoolProperties;
 import org.greenpole.util.threadfactory.GreenpoleNotifierFactory;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ public class AuthoriserNotifier implements Runnable {
     private final GeneralComponentQuery cq = ComponentQueryFactory.getGeneralComponentQuery();
     private final ThreadPoolProperties threadPoolProp = new ThreadPoolProperties(AuthoriserNotifier.class);
     private final EmailProperties emailProp = new EmailProperties(AuthoriserNotifier.class);
+    private final NotificationProperties notificationProp = new NotificationProperties(AuthoriserNotifier.class);
     private final ExecutorService service;
     private final NotificationWrapper wrapper;
     private int POOL_SIZE;
@@ -65,7 +67,7 @@ public class AuthoriserNotifier implements Runnable {
             wrapper.setToType(SenderReceiverType.Internal.toString());
             wrapper.setAttendedTo(false);
             
-            File file = new File("/etc/greenpole/notifications/authorisations/" + wrapper.getCode() + ".xml");
+            File file = new File(notificationProp.getNotificationLocation() + wrapper.getCode() + ".xml");
             file.getParentFile().mkdirs();
             
             JAXBContext jaxbContext = JAXBContext.newInstance(NotificationWrapper.class);
