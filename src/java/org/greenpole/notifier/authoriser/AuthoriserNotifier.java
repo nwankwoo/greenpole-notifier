@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AuthoriserNotifier implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(AuthoriserNotifier.class);
-    private final GeneralComponentQuery cq = ComponentQueryFactory.getGeneralComponentQuery();
+    private final GeneralComponentQuery gq = ComponentQueryFactory.getGeneralComponentQuery();
     private final ThreadPoolProperties threadPoolProp = new ThreadPoolProperties(AuthoriserNotifier.class);
     private final EmailProperties emailProp = new EmailProperties(AuthoriserNotifier.class);
     private final NotificationProperties notificationProp = new NotificationProperties(AuthoriserNotifier.class);
@@ -79,8 +79,9 @@ public class AuthoriserNotifier implements Runnable {
             //register notification in database
             Notification notification = new Notification(wrapper.getCode(), 
                 wrapper.getDescription(),wrapper.getFrom(), wrapper.getTo(),
-                wrapper.getFromType(), wrapper.getToType(), wrapper.isAttendedTo());
-            cq.createNotification(notification);
+                wrapper.getFromType(), wrapper.getToType(), wrapper.isAttendedTo(),
+            false);
+            gq.createUpdateNotification(notification);
             
             //send email notification
             String subject = "Authorisation requested";
