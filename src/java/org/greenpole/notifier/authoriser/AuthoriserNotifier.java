@@ -62,11 +62,13 @@ public class AuthoriserNotifier implements Runnable {
     
     private void createNotification() {
         try {
+            logger.info("setting extra information in wrapper");
             //set extra information
             wrapper.setFromType(SenderReceiverType.Internal.toString());
             wrapper.setToType(SenderReceiverType.Internal.toString());
             wrapper.setAttendedTo(false);
             
+            logger.info("preparing notfication file");
             File file = new File(notificationProp.getNotificationLocation() + wrapper.getCode() + ".xml");
             file.getParentFile().mkdirs();
             
@@ -82,6 +84,7 @@ public class AuthoriserNotifier implements Runnable {
                 wrapper.getFromType(), wrapper.getToType(), wrapper.isAttendedTo(),
             false);
             gq.createUpdateNotification(notification);
+            logger.info("notification file registered in database");
             
             //send email notification
             String subject = "Authorisation requested";

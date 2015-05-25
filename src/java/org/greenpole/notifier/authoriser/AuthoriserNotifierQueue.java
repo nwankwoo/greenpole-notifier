@@ -79,17 +79,26 @@ public class AuthoriserNotifierQueue implements MessageListener {
     
     @Override
     public void onMessage(Message message) {
+        logger.info("Received message from external source. Will process now...  - [{}]", message.getClass());
         try {
-            if (message instanceof NotificationWrapper) {
+            if (((ObjectMessage) message).getObject() instanceof NotificationWrapper) {
                 NotificationWrapper wrapper = (NotificationWrapper) ((ObjectMessage) message).getObject();
-                logger.info("received notification - [{}]");
+                logger.info("received notification - [{}]", wrapper.getCode());
                 service.execute(new AuthoriserNotifier(wrapper)); //start authoriser notifier thread
                 //send response
                 if (message.getJMSReplyTo() != null) {
-                    respondToSender(message);
+                    respondToSenderPositive(message);
+                    closeConnectionsLevel1();
                 }
+                closeConnectionsLevel2();
+            } else {
+                logger.info("Message received is not an instance of NotificationWrapper");
+                if (message.getJMSReplyTo() != null) {
+                    respondToSenderNegative(message);
+                    closeConnectionsLevel1();
+                }
+                closeConnectionsLevel2();
             }
-            closeConnections();
         } catch (JMSException ex) {
             logger.info("error thrown while receiving message - see error log");
             logger.error("error thrown while receiving message", ex);
@@ -120,7 +129,7 @@ public class AuthoriserNotifierQueue implements MessageListener {
         qsession = qcon.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
     }
     
-    private void respondToSender(Message message) throws JMSException {
+    private void respondToSenderPositive(Message message) throws JMSException {
         Response resp = new Response();
         resp.setRetn(0);
         resp.setDesc("Successful");
@@ -128,14 +137,21 @@ public class AuthoriserNotifierQueue implements MessageListener {
         producer.send(qsession.createObjectMessage(resp));
     }
     
-    /**
-     * Closes all connections: consumer, producer, queue session, and queue connection.
-     * @throws JMSException error closing any of the listed connections
-     */
-    private void closeConnections() throws JMSException {
-        producer.close();
+    private void respondToSenderNegative(Message message) throws JMSException {
+        Response resp = new Response();
+        resp.setRetn(100);
+        resp.setDesc("Message not a legal Notification Wrapper");
+        producer = qsession.createProducer(message.getJMSReplyTo());
+        producer.send(qsession.createObjectMessage(resp));
+    }
+    
+    private void closeConnectionsLevel2() throws JMSException {
         qsession.close();
         qcon.close();
+    }
+    
+    private void closeConnectionsLevel1() throws JMSException {
+        producer.close();
     }
     
     /**
@@ -157,6 +173,7 @@ public class AuthoriserNotifierQueue implements MessageListener {
         }
         
         properties.load(input);
+        input.close();
         logger.info("Loaded configuration file - {}", config_file);
         
         return new InitialContext(properties);
