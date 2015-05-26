@@ -52,7 +52,6 @@ public class AuthoriserNotifier implements Runnable {
         
         service = Executors.newFixedThreadPool(POOL_SIZE, new GreenpoleNotifierFactory("AuthoriserNotifier-EmailClient"));
         this.wrapper = wrapper;
-        createNotification();
     }
 
     @Override
@@ -87,11 +86,14 @@ public class AuthoriserNotifier implements Runnable {
             logger.info("notification file registered in database");
             
             //send email notification
-            String subject = "Authorisation requested";
-            String templatePath = emailProp.getMailTemplate();
-            EmailClient mailer = new EmailClient(wrapper.getFrom(), wrapper.getTo(), subject, templatePath);
-            service.execute(mailer);
+            //String subject = "Authorisation requested";
+            //String templatePath = emailProp.getMailTemplate();
+            //EmailClient mailer = new EmailClient(wrapper.getFrom(), wrapper.getTo(), subject, templatePath);
+            //service.execute(mailer);
         } catch (JAXBException ex) {
+            logger.info("an error occured while creating the notification file - [{}.xml]. See error log ", wrapper.getCode());
+            logger.error("a JAXBException was thrown by the authoriser notifier on creation of notification - [{}]", wrapper.getCode(), ex);
+        } catch (Exception ex) {
             logger.info("an error occured while creating the notification file - [{}.xml]. See error log ", wrapper.getCode());
             logger.error("a JAXBException was thrown by the authoriser notifier on creation of notification - [{}]", wrapper.getCode(), ex);
         }
