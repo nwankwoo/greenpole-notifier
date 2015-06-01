@@ -92,13 +92,13 @@ public class AuthoriserNotifierQueue implements MessageListener {
                 logger.info("received notification - [{}]", wrapper.getCode());
                 service.execute(new AuthoriserNotifier(wrapper)); //start authoriser notifier thread
                 
-                closeConnections();
+                //closeConnections();
             } else {
                 logger.info("Message received is not an instance of NotificationWrapper");
                 if (message.getJMSReplyTo() != null) {
                     respondToSenderNegative(message);
                 }
-                closeConnections();
+                //closeConnections();
             }
         } catch (JMSException ex) {
             logger.info("error thrown while receiving message - see error log");
@@ -139,7 +139,6 @@ public class AuthoriserNotifierQueue implements MessageListener {
         resp.setDesc("Notification submitted to queue.");
         producer = qsession.createProducer(message.getJMSReplyTo());
         producer.send(qsession.createObjectMessage(resp));
-        producer.close();
     }
     
     private void respondToSenderNegative(Message message) throws JMSException {
@@ -148,10 +147,10 @@ public class AuthoriserNotifierQueue implements MessageListener {
         resp.setDesc("Message not a legal Notification Wrapper");
         producer = qsession.createProducer(message.getJMSReplyTo());
         producer.send(qsession.createObjectMessage(resp));
-        producer.close();
     }
     
     private void closeConnections() throws JMSException {
+        producer.close();
         qsession.close();
         qcon.close();
     }
