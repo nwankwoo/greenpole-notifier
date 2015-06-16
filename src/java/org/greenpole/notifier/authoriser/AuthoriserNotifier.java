@@ -76,10 +76,10 @@ public class AuthoriserNotifier implements Runnable {
             logger.info("notification file created - [{}.xml]", wrapper.getCode());
             
             //register notification in database
-            Notification notification = new Notification(wrapper.getCode(), 
+            Notification notification = new Notification(wrapper.getCode(), wrapper.getNotificationType(), 
                 wrapper.getDescription(),wrapper.getFrom(), wrapper.getTo(),
                 wrapper.getFromType(), wrapper.getToType(), wrapper.isAttendedTo(),
-            false);
+            false, false);
             gq.createUpdateNotification(notification);
             logger.info("notification file registered in database");
             
