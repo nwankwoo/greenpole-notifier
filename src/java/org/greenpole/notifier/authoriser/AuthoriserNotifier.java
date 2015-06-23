@@ -16,9 +16,12 @@ import org.greenpole.entity.notification.SenderReceiverType;
 import org.greenpole.hibernate.entity.Notification;
 import org.greenpole.hibernate.query.GeneralComponentQuery;
 import org.greenpole.hibernate.query.factory.ComponentQueryFactory;
+import org.greenpole.util.Manipulator;
+import org.greenpole.util.email.EmailClient;
 import org.greenpole.util.properties.EmailProperties;
 import org.greenpole.util.properties.NotificationProperties;
 import org.greenpole.util.properties.ThreadPoolProperties;
+import org.greenpole.util.email.TemplateReader;
 import org.greenpole.util.threadfactory.GreenpoleNotifierFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +34,9 @@ import org.slf4j.LoggerFactory;
 public class AuthoriserNotifier implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(AuthoriserNotifier.class);
     private final GeneralComponentQuery gq = ComponentQueryFactory.getGeneralComponentQuery();
-    private final ThreadPoolProperties threadPoolProp = new ThreadPoolProperties(AuthoriserNotifier.class);
-    private final EmailProperties emailProp = new EmailProperties(AuthoriserNotifier.class);
-    private final NotificationProperties notificationProp = new NotificationProperties(AuthoriserNotifier.class);
+    private final ThreadPoolProperties threadPoolProp = ThreadPoolProperties.getInstance();
+    private final EmailProperties emailProp = EmailProperties.getInstance();
+    private final NotificationProperties notificationProp = NotificationProperties.getInstance();
     private final ExecutorService service;
     private final NotificationWrapper wrapper;
     private int POOL_SIZE;
@@ -84,16 +87,28 @@ public class AuthoriserNotifier implements Runnable {
             logger.info("notification file registered in database");
             
             //send email notification
-            //String subject = "Authorisation requested";
-            //String templatePath = emailProp.getMailTemplate();
-            //EmailClient mailer = new EmailClient(wrapper.getFrom(), wrapper.getTo(), subject, templatePath);
-            //service.execute(mailer);
+            Manipulator manipulate = new Manipulator();
+            String[] to_names = manipulate.separateNameFromEmail(wrapper.getTo());
+            String[] from_names = manipulate.separateNameFromEmail(wrapper.getFrom());
+            
+            String subject = "Authorisation requested";
+            String templatePath = emailProp.getAuthorisationMailTemplate();
+            
+            String template = TemplateReader.getTemplateContent(templatePath);
+            String to_person = to_names[0] + " " + to_names[1];
+            String from_person = from_names[0] + " " + from_names[1];
+            String body_main = "An authorisation request from " + from_person + " has been sent to you.<br>"
+                    + "Please, log into Greenpole to attend to it.<br><br>"
+                    + "Thank you.";
+            
+            EmailClient mailer = new EmailClient(emailProp.getMailSender(), wrapper.getTo(), subject, to_person, body_main, template);
+            service.execute(mailer);
         } catch (JAXBException ex) {
-            logger.info("an error occured while creating the notification file - [{}.xml]. See error log ", wrapper.getCode());
+            logger.info("an error occured while creating the notification file - [{}.xml]. See error log - ", wrapper.getCode());
             logger.error("a JAXBException was thrown by the authoriser notifier on creation of notification - [{}]", wrapper.getCode(), ex);
         } catch (Exception ex) {
-            logger.info("an error occured while creating the notification file - [{}.xml]. See error log ", wrapper.getCode());
-            logger.error("a JAXBException was thrown by the authoriser notifier on creation of notification - [{}]", wrapper.getCode(), ex);
+            logger.info("an error occured while creating the notification file - [{}.xml]. See error log - ", wrapper.getCode());
+            logger.error("a Exception was thrown by the authoriser notifier on creation of notification - [{}]", wrapper.getCode(), ex);
         }
     }
 }

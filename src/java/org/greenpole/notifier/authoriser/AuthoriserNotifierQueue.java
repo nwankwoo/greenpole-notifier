@@ -47,8 +47,8 @@ import org.slf4j.LoggerFactory;
 })
 public class AuthoriserNotifierQueue implements MessageListener {
     private static final Logger logger = LoggerFactory.getLogger(AuthoriserNotifierQueue.class);
-    private final ThreadPoolProperties threadPoolProp = new ThreadPoolProperties(AuthoriserNotifierQueue.class);
-    private final NotifierProperties notifierProp = new NotifierProperties(AuthoriserNotifierQueue.class);
+    private final ThreadPoolProperties threadPoolProp = ThreadPoolProperties.getInstance();
+    private final NotifierProperties notifierProp = NotifierProperties.getInstance();
     private final ExecutorService service;
     private Context context;
     private QueueConnectionFactory qconFactory;
@@ -69,11 +69,11 @@ public class AuthoriserNotifierQueue implements MessageListener {
         service = Executors.newFixedThreadPool(POOL_SIZE, new GreenpoleNotifierFactory("AuthoriserNotifierQueue-AuthoriserNotifier"));
         
         try {
-            initialiseQueueFactory(notifierProp.getAuthoriserNotifierQueueFactory());
+            initialiseQueueFactory(notifierProp.getNotifierQueueFactory());
             prepareResponseQueue();
         } catch (NamingException | ConfigNotFoundException | IOException | JMSException ex) {
             logger.info("Error thrown in QueueSender initialisation-preparation process. See error log");
-            logger.error("An error(s) was thrown in the QueueSender", ex);
+            logger.error("An error(s) was thrown in the Queue", ex);
         }
     }
     
