@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.greenpole.notifier.textsender;
+package org.greenpole.notifier.rejecter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,8 +25,8 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import org.greenpole.entity.exception.ConfigNotFoundException;
+import org.greenpole.entity.notification.NotificationWrapper;
 import org.greenpole.entity.response.Response;
-import org.greenpole.entity.sms.TextSend;
 import org.greenpole.util.properties.NotifierProperties;
 import org.greenpole.util.properties.QueueConfigProperties;
 import org.greenpole.util.properties.ThreadPoolProperties;
@@ -38,11 +38,11 @@ import org.slf4j.LoggerFactory;
  *
  * @author Akinwale Agbaje
  */
-@MessageDriven(mappedName = "jms/TextMessageQueue", activationConfig = {
+@MessageDriven(mappedName = "jms/RejectionQueue", activationConfig = {
     @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue")
 })
-public class TextNotifierQueue implements MessageListener {
-    private static final Logger logger = LoggerFactory.getLogger(TextNotifierQueue.class);
+public class RejectNotifierQueue implements MessageListener {
+    private static final Logger logger = LoggerFactory.getLogger(RejectNotifierQueue.class);
     private final ThreadPoolProperties threadPoolProp = ThreadPoolProperties.getInstance();
     private final NotifierProperties notifierProp = NotifierProperties.getInstance();
     private static final QueueConfigProperties queueConfigProp = QueueConfigProperties.getInstance();
@@ -54,22 +54,22 @@ public class TextNotifierQueue implements MessageListener {
     private MessageProducer producer;
     private int POOL_SIZE;
     
-    public TextNotifierQueue() {
+    public RejectNotifierQueue() {
         try {
-            POOL_SIZE = Integer.parseInt(threadPoolProp.getTextNotifierQueuePoolSize());
+            POOL_SIZE = Integer.parseInt(threadPoolProp.getAuthoriserNotifierQueuePoolSize());
         } catch (Exception ex) {
             logger.info("Invalid property for pool size - see error log. Setting default size to 15");
             logger.error("Error assigning property value to pool size", ex);
             POOL_SIZE = 15;
         }
         
-        service = Executors.newFixedThreadPool(POOL_SIZE, new GreenpoleNotifierFactory("TextNotifierQueue-TextNotifier"));
+        service = Executors.newFixedThreadPool(POOL_SIZE, new GreenpoleNotifierFactory("AuthoriserNotifierQueue-AuthoriserNotifier"));
         
         try {
             initialiseQueueFactory(notifierProp.getNotifierQueueFactory());
             prepareResponseQueue();
         } catch (NamingException | ConfigNotFoundException | IOException | JMSException ex) {
-            logger.info("Error thrown in Text notifier queue initialisation-preparation process. See error log");
+            logger.info("Error thrown in Authoriser Notifier queue initialisation-preparation process. See error log");
             logger.error("An error(s) was thrown in the Queue", ex);
         }
     }
@@ -78,20 +78,20 @@ public class TextNotifierQueue implements MessageListener {
     public void onMessage(Message message) {
         logger.info("Received message from external source. Will process now...");
         try {
-            if (((ObjectMessage) message).getObject() instanceof TextSend) {
+            if (((ObjectMessage) message).getObject() instanceof NotificationWrapper) {
                 //send response
                 if (message.getJMSReplyTo() != null) {
                     logger.info("sending response");
                     respondToSenderPositive(message);
                 }
                 
-                TextSend toSend = (TextSend) ((ObjectMessage) message).getObject();
-                logger.info("received text - [{}]", toSend.getMessage_id());
-                service.execute(new TextNotifier(toSend)); //start authoriser notifier thread
+                NotificationWrapper wrapper = (NotificationWrapper) ((ObjectMessage) message).getObject();
+                logger.info("received notification - [{}]", wrapper.getCode());
+                service.execute(new RejectNotifier(wrapper)); //start authoriser notifier thread
                 
                 //closeConnections();
             } else {
-                logger.info("Message received is not an instance of TextSend");
+                logger.info("Message received is not an instance of NotificationWrapper");
                 if (message.getJMSReplyTo() != null) {
                     respondToSenderNegative(message);
                 }
@@ -115,7 +115,7 @@ public class TextNotifierQueue implements MessageListener {
      */
     private void initialiseQueueFactory(String queueConnectionFactory) throws NamingException, ConfigNotFoundException, IOException {
         logger.info("initialising queue factory - [{}]", queueConnectionFactory);
-        context = TextNotifierQueue.getInitialContext();
+        context = RejectNotifierQueue.getInitialContext();
         qconFactory = (QueueConnectionFactory) context.lookup(queueConnectionFactory);
     }
     
@@ -133,7 +133,7 @@ public class TextNotifierQueue implements MessageListener {
     private void respondToSenderPositive(Message message) throws JMSException {
         Response resp = new Response();
         resp.setRetn(0);
-        resp.setDesc("Text submitted to queue.");
+        resp.setDesc("Notification submitted to queue.");
         producer = qsession.createProducer(message.getJMSReplyTo());
         producer.send(qsession.createObjectMessage(resp));
     }
@@ -141,7 +141,7 @@ public class TextNotifierQueue implements MessageListener {
     private void respondToSenderNegative(Message message) throws JMSException {
         Response resp = new Response();
         resp.setRetn(100);
-        resp.setDesc("Message not a legal text sender object");
+        resp.setDesc("Message not a legal Notification Wrapper");
         producer = qsession.createProducer(message.getJMSReplyTo());
         producer.send(qsession.createObjectMessage(resp));
     }

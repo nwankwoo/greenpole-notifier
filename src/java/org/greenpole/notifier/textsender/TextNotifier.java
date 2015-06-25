@@ -19,7 +19,6 @@ import org.greenpole.hibernate.entity.TextMessage;
 import org.greenpole.hibernate.query.GeneralComponentQuery;
 import org.greenpole.hibernate.query.HolderComponentQuery;
 import org.greenpole.hibernate.query.factory.ComponentQueryFactory;
-import org.greenpole.util.Manipulator;
 import org.greenpole.util.email.EmailClient;
 import org.greenpole.util.email.TemplateReader;
 import org.greenpole.util.properties.EmailProperties;
@@ -36,8 +35,8 @@ import org.slf4j.LoggerFactory;
  */
 public class TextNotifier implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(TextNotifier.class);
-    private final SMSProperties smsProp = new SMSProperties(TextNotifier.class);
-    private final EmailProperties emailProp = new EmailProperties(TextNotifier.class);
+    private final SMSProperties smsProp = SMSProperties.getInstance();
+    private final EmailProperties emailProp = EmailProperties.getInstance();
     private final GeneralComponentQuery gq = ComponentQueryFactory.getGeneralComponentQuery();
     private final HolderComponentQuery hq = ComponentQueryFactory.getHolderComponentQuery();
     private final TextSend toSend;

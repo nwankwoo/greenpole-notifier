@@ -6,6 +6,8 @@
 package org.greenpole.notifier.authoriser;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.xml.bind.JAXBContext;
@@ -22,6 +24,7 @@ import org.greenpole.util.properties.EmailProperties;
 import org.greenpole.util.properties.NotificationProperties;
 import org.greenpole.util.properties.ThreadPoolProperties;
 import org.greenpole.util.email.TemplateReader;
+import org.greenpole.util.properties.GreenpoleProperties;
 import org.greenpole.util.threadfactory.GreenpoleNotifierFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +39,7 @@ public class AuthoriserNotifier implements Runnable {
     private final GeneralComponentQuery gq = ComponentQueryFactory.getGeneralComponentQuery();
     private final ThreadPoolProperties threadPoolProp = ThreadPoolProperties.getInstance();
     private final EmailProperties emailProp = EmailProperties.getInstance();
+    private final GreenpoleProperties greenProp = GreenpoleProperties.getInstance();
     private final NotificationProperties notificationProp = NotificationProperties.getInstance();
     private final ExecutorService service;
     private final NotificationWrapper wrapper;
@@ -64,9 +68,11 @@ public class AuthoriserNotifier implements Runnable {
         try {
             logger.info("setting extra information in wrapper");
             //set extra information
+            SimpleDateFormat formatter = new SimpleDateFormat(greenProp.getDateFormat());
             wrapper.setFromType(SenderReceiverType.Internal.toString());
             wrapper.setToType(SenderReceiverType.Internal.toString());
             wrapper.setAttendedTo(false);
+            wrapper.setSentDate(formatter.format(new Date()));
             
             logger.info("preparing notfication file");
             File file = new File(notificationProp.getNotificationLocation() + wrapper.getCode() + ".xml");
@@ -82,7 +88,7 @@ public class AuthoriserNotifier implements Runnable {
             Notification notification = new Notification(wrapper.getCode(), wrapper.getNotificationType(), 
                 wrapper.getDescription(),wrapper.getFrom(), wrapper.getTo(),
                 wrapper.getFromType(), wrapper.getToType(), wrapper.isAttendedTo(),
-            false, false);
+            false, false, null, new Date(), null);
             gq.createUpdateNotification(notification);
             logger.info("notification file registered in database");
             

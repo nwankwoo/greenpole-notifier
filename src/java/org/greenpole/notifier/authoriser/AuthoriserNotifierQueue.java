@@ -31,6 +31,7 @@ import org.greenpole.entity.exception.ConfigNotFoundException;
 import org.greenpole.entity.notification.NotificationWrapper;
 import org.greenpole.entity.response.Response;
 import org.greenpole.util.properties.NotifierProperties;
+import org.greenpole.util.properties.QueueConfigProperties;
 import org.greenpole.util.properties.ThreadPoolProperties;
 import org.greenpole.util.threadfactory.GreenpoleNotifierFactory;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class AuthoriserNotifierQueue implements MessageListener {
     private static final Logger logger = LoggerFactory.getLogger(AuthoriserNotifierQueue.class);
     private final ThreadPoolProperties threadPoolProp = ThreadPoolProperties.getInstance();
     private final NotifierProperties notifierProp = NotifierProperties.getInstance();
+    private static final QueueConfigProperties queueConfigProp = QueueConfigProperties.getInstance();
     private final ExecutorService service;
     private Context context;
     private QueueConnectionFactory qconFactory;
@@ -72,7 +74,7 @@ public class AuthoriserNotifierQueue implements MessageListener {
             initialiseQueueFactory(notifierProp.getNotifierQueueFactory());
             prepareResponseQueue();
         } catch (NamingException | ConfigNotFoundException | IOException | JMSException ex) {
-            logger.info("Error thrown in QueueSender initialisation-preparation process. See error log");
+            logger.info("Error thrown in Authoriser Notifier queue initialisation-preparation process. See error log");
             logger.error("An error(s) was thrown in the Queue", ex);
         }
     }
@@ -163,21 +165,7 @@ public class AuthoriserNotifierQueue implements MessageListener {
      * @throws IOException error loading file into properties
      */
     private static Context getInitialContext() throws NamingException, ConfigNotFoundException, IOException {
-        String config_file = "queue_config.properties";
-        Properties properties = new Properties();
-        InputStream input = AuthoriserNotifierQueue.class.getClassLoader().getResourceAsStream(config_file);
-        logger.info("Loading configuration file - {}", config_file);
-        
-        if (input == null) {
-            logger.info("Failure to load configuration file - {}", config_file);
-            throw new ConfigNotFoundException("queue_config.properties file missing from classpath");
-        }
-        
-        properties.load(input);
-        input.close();
-        logger.info("Loaded configuration file - {}", config_file);
-        
-        return new InitialContext(properties);
+        return new InitialContext(queueConfigProp);
     }
     
 }
