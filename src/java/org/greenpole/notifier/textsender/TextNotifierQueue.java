@@ -87,8 +87,9 @@ public class TextNotifierQueue implements MessageListener {
                 
                 TextSend toSend = (TextSend) ((ObjectMessage) message).getObject();
                 logger.info("received text - [{}]", toSend.getMessage_id());
-                service.execute(new TextNotifier(toSend)); //start authoriser notifier thread
-                
+                logger.info("text messaging function setting (\"false\" - for disabled) - [{}]", toSend.getMessage_id());
+                if (toSend.isAllowText())
+                    service.execute(new TextNotifier(toSend)); //start authoriser notifier thread
                 //closeConnections();
             } else {
                 logger.info("Message received is not an instance of TextSend");
@@ -131,9 +132,13 @@ public class TextNotifierQueue implements MessageListener {
     }
     
     private void respondToSenderPositive(Message message) throws JMSException {
+        TextSend toSend = (TextSend) ((ObjectMessage) message).getObject();
         Response resp = new Response();
         resp.setRetn(0);
-        resp.setDesc("Text submitted to queue.");
+        if (toSend.isAllowText())
+            resp.setDesc("Text submitted to queue.");
+        else
+            resp.setDesc("Text submitted to queue but not processed, because text messaging function has been disabled.");
         producer = qsession.createProducer(message.getJMSReplyTo());
         producer.send(qsession.createObjectMessage(resp));
     }
